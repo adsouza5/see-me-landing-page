@@ -1,0 +1,20 @@
+﻿# Node / Next
+node_modules
+.next
+out
+dist
+coverage
+*.log
+*.lock
+.env*
+.vercel
+
+# Python (agents)
+agents/.venv
+agents/__pycache__/
+**/__pycache__/
+
+# Playwright / tmp
+playwright-report
+test-results
+agents/.tmp
