@@ -1,0 +1,24 @@
+﻿{
+  "hero": {
+    "background": {
+      "type": "image+gradient",
+      "gradient": [".bgTop", ".bgMid", ".bgBottom"],
+      "image": "public/assets/clouds.jpg",
+      "overlayOpacity": ".cloudsOpacity"
+    },
+    "header": {
+      "title": ".headline",
+      "subtitle": ".subtitle",
+      "alignment": "center"
+    },
+    "centerpiece": { "type": "image", "src": "public/assets/phone.png", "width": ".phoneWidth" },
+    "badge": { "src": "public/assets/appstore-badge.png", "width": ".badgeWidth" },
+    "cta": ".cta",
+
+    "acceptance": {
+      "visual": { "ssimMin": 0.90, "viewport": [1280, 720] },
+      "accessibility": { "axeMaxSeverity": "minor" },
+      "performance": { "lighthouseMin": 90 }
+    }
+  }
+}
