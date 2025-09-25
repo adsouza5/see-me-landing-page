@@ -1,24 +1,50 @@
 ﻿{
   "hero": {
     "background": {
-      "type": "image+gradient",
-      "gradient": [".bgTop", ".bgMid", ".bgBottom"],
-      "image": "public/assets/clouds.jpg",
-      "overlayOpacity": ".cloudsOpacity"
+      "type": "image",
+      "image": "public/assets/clouds.png",
+      "overlayOpacity": 0
+    },
+    "tuning": {
+      "lockPhoneWidth": true,
+      "phoneWidthLockedPx": 250,
+      "deadband": 0.005
     },
     "header": {
-      "title": ".headline",
-      "subtitle": ".subtitle",
+      "title": "$copy.headline",
+      "subtitle": "$copy.subtitle",
       "alignment": "center"
     },
-    "centerpiece": { "type": "image", "src": "public/assets/phone.png", "width": ".phoneWidth" },
-    "badge": { "src": "public/assets/appstore-badge.png", "width": ".badgeWidth" },
-    "cta": ".cta",
-
+    "centerpiece": {
+      "type": "image",
+      "src": "public/assets/phone.png",
+      "width": "$spacing.phoneWidth",
+      "selector": "img[alt='App mock']"
+    },
+    "badge": {
+      "src": "public/assets/appstore-badge.png",
+      "width": "$spacing.badgeWidth"
+    },
+    "layout": {
+      "heroTopGap": "$spacing.heroTopGap",
+      "headlineGap": "$spacing.headlineGap",
+      "phoneTopGap": "$spacing.phoneTopGap",
+      "phoneToBadgeGap": "$spacing.phoneToBadgeGap"
+    },
     "acceptance": {
-      "visual": { "ssimMin": 0.90, "viewport": [1280, 720] },
-      "accessibility": { "axeMaxSeverity": "minor" },
-      "performance": { "lighthouseMin": 90 }
+      "visual": {
+        "ssimMin": 0.99,
+        "viewport": [
+          1920,
+          1080
+        ]
+      },
+      "accessibility": {
+        "axeMaxSeverity": "minor"
+      },
+      "performance": {
+        "lighthouseMin": 90
+      }
     }
   }
 }

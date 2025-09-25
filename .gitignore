@@ -1,20 +1,26 @@
-﻿# Node / Next
-node_modules
-.next
-out
-dist
-coverage
-*.log
-*.lock
-.env*
-.vercel
+# node / next
+node_modules/
+site/node_modules/
+site/.next/
+site/.turbo/
+site/out/
+site/.env*
+.pnpm-store/
+pnpm-debug.log
+npm-debug.log
 
-# Python (agents)
-agents/.venv
-agents/__pycache__/
-**/__pycache__/
+# python
+agents/.venv/
+agents/.tmp/
+__pycache__/
+*.pyc
 
-# Playwright / tmp
-playwright-report
-test-results
-agents/.tmp
+# os/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# playwright/lighthouse artifacts (if any)
+playwright-report/
+lighthouse-*.json
