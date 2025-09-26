@@ -24,3 +24,4 @@ Thumbs.db
 # playwright/lighthouse artifacts (if any)
 playwright-report/
 lighthouse-*.json
+.env
