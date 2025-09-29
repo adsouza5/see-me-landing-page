@@ -21,6 +21,10 @@ type Props = {
   headingTopPx: number;
   headingHeightPx: number;
 
+  /** Optional decor layer (e.g., orbit circles) */
+  renderDecor?: (cueIndex: number) => React.ReactNode;
+  decorTopPx?: number;
+
   /** Optional background video under everything (video mode only) */
   showVideoBackground?: boolean;
   poster?: string;
@@ -47,6 +51,8 @@ export default function TimedCopy({
   renderSubheading,
   headingTopPx,
   headingHeightPx,
+  renderDecor,
+  decorTopPx,
   showVideoBackground = false,
   poster,
   muted = true,
@@ -89,7 +95,7 @@ export default function TimedCopy({
       if (autoPlay) {
         try {
           await v.play();
-        } catch {}
+        } catch { }
       }
     };
 
@@ -162,6 +168,20 @@ export default function TimedCopy({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Optional decor layer (e.g., orbiting circles). 
+          It sits BELOW the phone (z-25) but above the background. */}
+      {typeof renderDecor === "function" && (
+        <div className="absolute left-1/2 -translate-x-1/2 z-25 pointer-events-none w-full"
+          style={{
+            top: (typeof decorTopPx === "number"
+              ? decorTopPx
+              : headingTopPx + headingHeightPx + 8),
+          }}
+        >
+          {renderDecor(idx)}
+        </div>
+      )}
     </div>
   );
 }
