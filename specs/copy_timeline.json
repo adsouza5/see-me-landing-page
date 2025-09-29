@@ -1,0 +1,11 @@
+{
+    "duration": "public/assets/hero.mp4",
+    "fadeMs": 1000,
+    "cues": [
+      { "start": 0,   "end": 5,  "heading": "Welcome to SeeMe",  "subheading": "Your partner for personal greatness" },
+      { "start": 5,   "end": 10,  "heading": "Welcome to SeeMe", "subheading": "Your personal network of support" },
+      { "start": 10,   "end": 15, "heading": "Welcome to SeeMe", "subheading": "Professionally curated sessions, and unpaired insights" },
+      { "start": 15,   "end": 20, "heading": "Welcome to SeeMe", "subheading": "Completely private" }
+    ]
+  }
+  
