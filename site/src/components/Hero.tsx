@@ -135,3 +135,5 @@ export default function Hero(p: HeroProps) {
     </section>
   );
 }
+
+export type { HeroProps };

@@ -4,6 +4,7 @@
 import React from "react";
 import Hero from "@/components/Hero";
 import TimedCopy from "@/components/TimedCopy";
+import type { Timeline } from "@/lib/spec";
 
 const AVATARS = [
   "/assets/avatars/a1.png",
@@ -14,15 +15,23 @@ const AVATARS = [
   "/assets/avatars/a6.png",
 ];
 
-// --- Stable child so it doesn't remount across cue changes ---
+/** Allow CSS custom properties without using `any`. */
+type CSSVars = React.CSSProperties & {
+  ["--moveDur"]?: string;
+  ["--fadeDur"]?: string;
+  ["--dx"]?: string;
+  ["--dy"]?: string;
+};
+
 type Node = { src: string; x: number; y: number; delay: number; key: string; dx: number; dy: number };
+
 function VAvatars({
   nodes,
   height,
-  phase,          // "in" | "out"
-  moveMs = 1600,  // SLOWER move to center
-  enterMs = 900,  // SLOWER entrance fade
-  fadeMs = 900,   // SLOWER fade-out
+  phase, // "in" | "out"
+  moveMs = 1600, // SLOWER move to center
+  enterMs = 1500, // SLOWER entrance fade
+  fadeMs = 900, // SLOWER fade-out
 }: {
   nodes: Node[];
   height: number;
@@ -47,48 +56,43 @@ function VAvatars({
       return;
     }
     setOutStage("moving");
-    // begin fade a bit before the move finishes so it feels continuous
     const startFadeAfter = Math.max(300, moveMs - 200);
     const t = window.setTimeout(() => setOutStage("fading"), startFadeAfter);
     return () => window.clearTimeout(t);
   }, [phase, moveMs]);
 
+  const containerStyle: CSSVars = {
+    height,
+    zIndex: 35,
+    "--moveDur": `${moveMs}ms`,
+    "--fadeDur": `${phase === "out" ? fadeMs : enterMs}ms`,
+  };
+
   return (
-    <div
-      className={`relative w-full avatars ${phase} ${outStage}`}
-      style={{
-        height,
-        zIndex: 35,                 // keep above phone while moving so motion is visible
-        // expose durations to CSS
-        // entrance uses --fadeDur (when phase === "in"), exit uses it again (phase === "out")
-        // we just swap the value below based on phase
-        // @ts-ignore custom props
-        "--moveDur": `${moveMs}ms`,
-        "--fadeDur": `${phase === "out" ? fadeMs : enterMs}ms`,
-      } as React.CSSProperties}
-    >
-      {nodes.map((n) => (
-        <div
-          key={n.key}
-          className={`avatar absolute rounded-full overflow-hidden shadow-lg border-[3px] border-black/50 ${
-            entered ? "entered" : "pre"
-          }`}
-          style={
-            {
-              width: 48,
-              height: 48,
-              left: `calc(50% + ${n.x - 24}px)`,
-              top: n.y - 24,
-              ["--dx" as any]: `${n.dx}px`,
-              ["--dy" as any]: `${n.dy}px`,
-              transitionDelay: `${n.delay}ms`, // stagger on both enter and exit
-            } as React.CSSProperties
-          }
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={n.src} alt="" className="w-full h-full object-cover" />
-        </div>
-      ))}
+    <div className={`relative w-full avatars ${phase} ${outStage}`} style={containerStyle}>
+      {nodes.map((n) => {
+        const style: CSSVars = {
+          width: 48,
+          height: 48,
+          left: `calc(50% + ${n.x - 24}px)`,
+          top: n.y - 24,
+          "--dx": `${n.dx}px`,
+          "--dy": `${n.dy}px`,
+          transitionDelay: `${n.delay}ms`,
+        };
+        return (
+          <div
+            key={n.key}
+            className={`avatar absolute rounded-full overflow-hidden shadow-lg border-[3px] border-black/50 ${
+              entered ? "entered" : "pre"
+            }`}
+            style={style}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={n.src} alt="" className="w-full h-full object-cover" />
+          </div>
+        );
+      })}
 
       <style>{`
         .avatars .avatar {
@@ -97,7 +101,7 @@ function VAvatars({
             transform var(--moveDur) cubic-bezier(.22,.61,.36,1),
             opacity   var(--fadeDur) ease;
         }
-        /* Entrance (slower now via --fadeDur when phase === "in") */
+        /* Entrance */
         .avatars .avatar.pre     { opacity: 0; transform: translateY(12px); }
         .avatars .avatar.entered { opacity: 1; transform: translate(0,0); }
 
@@ -111,9 +115,35 @@ function VAvatars({
   );
 }
 
-export default function HeroWithTimeline({ props }: { props: any }) {
+/** Minimal shape we actually read from `props`.
+ *  This avoids `any` while still allowing extra keys to be spread into <Hero>.
+ */
+type HeroMinimalProps = {
+  timeline?: Timeline;
+  headingBlockHeight: number;
+  heroTopGap: number;
+  headlineGap: number;
+  phoneWidth: number;
+  phoneAspect: number;
+  phoneTopGap: number;
+  h1Px: number;
+  h1Line: number;
+  h1Weight: number;
+  h2Px: number;
+  h2Line: number;
+  h2Weight: number;
+  title: string;
+  subtitle: string;
+  // allow additional keys (for spreading into <Hero />)
+  [key: string]: unknown;
+};
+
+export default function HeroWithTimeline({ props }: { props: HeroMinimalProps }) {
   const hasTimeline = !!props.timeline?.cues?.length;
-  if (!hasTimeline) return <Hero {...props} />;
+  if (!hasTimeline) {
+    // We only need a narrow type locally; cast to keep spread-compatible with <Hero>.
+    return <Hero {...(props as unknown as React.ComponentProps<typeof Hero>)} />;
+  }
 
   // Decor sits between headings and phone
   const decorTop = props.heroTopGap + props.headingBlockHeight + Math.max(8, props.headlineGap);
@@ -124,15 +154,17 @@ export default function HeroWithTimeline({ props }: { props: any }) {
   const phoneCenterYAbs = phoneTop + phoneH * 0.45;
   const targetYInDecor = phoneCenterYAbs - decorTop; // convert to decor coords
 
+  const timeline = props.timeline as Timeline;
+
   return (
     <TimedCopy
-      timeline={props.timeline}
+      timeline={timeline}
       headingTopPx={props.heroTopGap}
       headingHeightPx={props.headingBlockHeight}
       decorTopPx={decorTop}
       renderBase={(mediaEl) => (
         <Hero
-          {...props}
+          {...(props as unknown as React.ComponentProps<typeof Hero>)}
           suppressText
           centerpiece={mediaEl ?? <div className="absolute inset-0 bg-black/20" />}
         />
@@ -176,15 +208,17 @@ export default function HeroWithTimeline({ props }: { props: any }) {
         // V positions (relative to decor’s centered container)
         const leftXs = [
           -(phoneHalf + gapFromPhone + groupSpan * 0.15),
-          -(phoneHalf + gapFromPhone + groupSpan * 0.50),
+          -(phoneHalf + gapFromPhone + groupSpan * 0.5),
           -(phoneHalf + gapFromPhone + groupSpan * 0.85),
         ];
         const rightXs = [
           +(phoneHalf + gapFromPhone + groupSpan * 0.15),
-          +(phoneHalf + gapFromPhone + groupSpan * 0.50),
+          +(phoneHalf + gapFromPhone + groupSpan * 0.5),
           +(phoneHalf + gapFromPhone + groupSpan * 0.85),
         ];
-        const yInner = 72, yMid = 52, yOuter = 34;
+        const yInner = 72,
+          yMid = 52,
+          yOuter = 34;
 
         const mk = (src: string, x: number, y: number, delay: number, i: number): Node => ({
           src,
@@ -197,17 +231,16 @@ export default function HeroWithTimeline({ props }: { props: any }) {
         });
 
         const nodes: Node[] = [
-          mk(AVATARS[0], leftXs[0],  yInner,  100, 0),
-          mk(AVATARS[1], leftXs[1],  yMid,    150, 1),
-          mk(AVATARS[2], leftXs[2],  yOuter,  200, 2),
-          mk(AVATARS[3], rightXs[0], yInner,  100, 3),
-          mk(AVATARS[4], rightXs[1], yMid,    150, 4),
-          mk(AVATARS[5], rightXs[2], yOuter,  200, 5),
+          mk(AVATARS[0], leftXs[0], yInner, 100, 0),
+          mk(AVATARS[1], leftXs[1], yMid, 150, 1),
+          mk(AVATARS[2], leftXs[2], yOuter, 200, 2),
+          mk(AVATARS[3], rightXs[0], yInner, 100, 3),
+          mk(AVATARS[4], rightXs[1], yMid, 150, 4),
+          mk(AVATARS[5], rightXs[2], yOuter, 200, 5),
         ];
 
         const phase: "in" | "out" = cueIndex >= 2 ? "out" : "in";
 
-        // Slower timings passed here
         return <VAvatars nodes={nodes} height={yInner + 48} phase={phase} moveMs={1600} enterMs={1500} fadeMs={900} />;
       }}
     />
