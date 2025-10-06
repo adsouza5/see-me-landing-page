@@ -83,7 +83,7 @@ function VAvatars({
         return (
           <div
             key={n.key}
-            className={`avatar absolute rounded-full overflow-hidden shadow-lg border-[3px] border-black/50 ${
+            className={`avatar absolute rounded-full overflow-hidden ${
               entered ? "entered" : "pre"
             }`}
             style={style}
