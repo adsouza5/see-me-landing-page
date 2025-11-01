@@ -2,10 +2,10 @@
     "duration": "public/assets/hero.mp4",
     "fadeMs": 1000,
     "cues": [
-      { "start": 0,   "end": 12,  "heading": "Welcome to SeeMe",  "subheading": "Your partner for personal greatness" },
-      { "start": 12,   "end": 24,  "heading": "Welcome to SeeMe", "subheading": "Your personal network of support" },
-      { "start": 24,   "end": 36, "heading": "Welcome to SeeMe", "subheading": "Professionally curated sessions, and unpaired insights" },
-      { "start": 24,   "end": 32, "heading": "Welcome to SeeMe", "subheading": "Completely private" }
+      { "start": 0,   "end": 4,  "heading": "Welcome to SeeMe",  "subheading": "Your partner for personal greatness" },
+      { "start": 4,   "end": 9,  "heading": "Welcome to SeeMe", "subheading": "Your personal network of support" },
+      { "start": 9,   "end": 14, "heading": "Welcome to SeeMe", "subheading": "Professionally curated sessions, and unpaired insights" },
+      { "start": 14,   "end": 16, "heading": "Welcome to SeeMe", "subheading": "Completely private" }
     ]
   }
   

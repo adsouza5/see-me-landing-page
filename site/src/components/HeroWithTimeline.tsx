@@ -6,7 +6,7 @@ import Hero from "@/components/Hero";
 import TimedCopy from "@/components/TimedCopy";
 import type { Timeline } from "@/lib/spec";
 
-const AVATARS = [
+const AVATARS_DESKTOP = [
   "/assets/avatars/a1.png",
   "/assets/avatars/a2.png",
   "/assets/avatars/a3.png",
@@ -15,7 +15,12 @@ const AVATARS = [
   "/assets/avatars/a6.png",
 ];
 
-/** Allow CSS custom properties without using `any`. */
+const AVATARS_MOBILE = [
+  "/assets/avatars/a1.png",
+  "/assets/avatars/a3.png",
+  "/assets/avatars/a5.png",
+];
+
 type CSSVars = React.CSSProperties & {
   ["--moveDur"]?: string;
   ["--fadeDur"]?: string;
@@ -23,17 +28,25 @@ type CSSVars = React.CSSProperties & {
   ["--dy"]?: string;
 };
 
-type Node = { src: string; x: number; y: number; delay: number; key: string; dx: number; dy: number };
+type AvatarNode = {
+  src: string;
+  x: number;
+  y: number;
+  delay: number;
+  key: string;
+  dx: number;
+  dy: number;
+};
 
 function VAvatars({
   nodes,
   height,
-  phase, // "in" | "out"
-  moveMs = 1600, // SLOWER move to center
-  enterMs = 1500, // SLOWER entrance fade
-  fadeMs = 900, // SLOWER fade-out
+  phase,
+  moveMs = 1600,
+  enterMs = 1500,
+  fadeMs = 900,
 }: {
-  nodes: Node[];
+  nodes: AvatarNode[];
   height: number;
   phase: "in" | "out";
   moveMs?: number;
@@ -43,13 +56,11 @@ function VAvatars({
   const [entered, setEntered] = React.useState(false);
   const [outStage, setOutStage] = React.useState<"idle" | "moving" | "fading">("idle");
 
-  // one-time entrance
   React.useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // two-stage out: move → fade (fade starts near end of move)
   React.useEffect(() => {
     if (phase !== "out") {
       setOutStage("idle");
@@ -83,9 +94,7 @@ function VAvatars({
         return (
           <div
             key={n.key}
-            className={`avatar absolute rounded-full overflow-hidden ${
-              entered ? "entered" : "pre"
-            }`}
+            className={`avatar absolute rounded-full overflow-hidden ${entered ? "entered" : "pre"}`}
             style={style}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -101,23 +110,16 @@ function VAvatars({
             transform var(--moveDur) cubic-bezier(.22,.61,.36,1),
             opacity   var(--fadeDur) ease;
         }
-        /* Entrance */
         .avatars .avatar.pre     { opacity: 0; transform: translateY(12px); }
         .avatars .avatar.entered { opacity: 1; transform: translate(0,0); }
 
-        /* PHASE: out-moving — move to center, keep opacity 1 */
         .avatars.out.moving .avatar { transform: translate(var(--dx), var(--dy)); opacity: 1; }
-
-        /* PHASE: out-fading — already at center, now fade out slowly */
         .avatars.out.fading .avatar { transform: translate(var(--dx), var(--dy)); opacity: 0; }
       `}</style>
     </div>
   );
 }
 
-/** Minimal shape we actually read from `props`.
- *  This avoids `any` while still allowing extra keys to be spread into <Hero>.
- */
 type HeroMinimalProps = {
   timeline?: Timeline;
   headingBlockHeight: number;
@@ -134,47 +136,100 @@ type HeroMinimalProps = {
   h2Weight: number;
   title: string;
   subtitle: string;
-  // allow additional keys (for spreading into <Hero />)
   [key: string]: unknown;
 };
 
 export default function HeroWithTimeline({ props }: { props: HeroMinimalProps }) {
-  const hasTimeline = !!props.timeline?.cues?.length;
-  if (!hasTimeline) {
-    // We only need a narrow type locally; cast to keep spread-compatible with <Hero>.
-    return <Hero {...(props as unknown as React.ComponentProps<typeof Hero>)} />;
-  }
+  const [isMobile, setIsMobile] = React.useState(false);
 
-  // Decor sits between headings and phone
-  const decorTop = props.heroTopGap + props.headingBlockHeight + Math.max(8, props.headlineGap);
+  React.useEffect(() => {
+    const update = () => {
+      if (typeof window === "undefined") return;
+      setIsMobile(window.innerWidth <= 768);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
-  // Phone geometry → vertical center (slightly above true center looks nicer)
+  const rawTimeline = props.timeline;
+  const timeline: Timeline =
+    rawTimeline && Array.isArray(rawTimeline.cues) && rawTimeline.cues.length > 0
+      ? rawTimeline
+      : {
+          src: "/assets/hero.mp4",
+          fadeMs: 500,
+          duration: 8,
+          cues: [
+            { start: 0, end: 3, heading: props.title, subheading: props.subtitle },
+            { start: 3, end: 6, heading: props.title, subheading: "See your world, shared in real time." },
+          ],
+        };
+
+  // ----- MOBILE TWEAKS -----
+  const mobileH1Px = Math.round(props.h1Px * 0.62);
+  const mobileH2Px = Math.round(props.h2Px * 0.6);
+  const mobileHeadlineGap = Math.round(props.headlineGap * 1.2);
+
+  // push text lower on mobile
+  const mobileHeroTopGap = Math.round(props.heroTopGap * 0.75) + 70;
+  const mobilePhoneTopGap = Math.max(20, Math.round(props.phoneTopGap * 1.5));
+
+  const mobileHeadingBlockHeight =
+    Math.ceil(mobileH1Px * props.h1Line) +
+    Math.ceil(mobileHeadlineGap) +
+    Math.ceil(mobileH2Px * props.h2Line);
+
+  const desktopHeroTopGap = props.heroTopGap + 14;
+
+  const effectiveHeroTopGap = isMobile ? mobileHeroTopGap : desktopHeroTopGap;
+  const effectiveHeadlineGap = isMobile ? mobileHeadlineGap : props.headlineGap;
+  const effectiveH1Px = isMobile ? mobileH1Px : props.h1Px;
+  const effectiveH2Px = isMobile ? mobileH2Px : props.h2Px;
+  const effectiveHeadingBlockHeight = isMobile ? mobileHeadingBlockHeight : props.headingBlockHeight;
+  const effectivePhoneTopGap = isMobile ? mobilePhoneTopGap : props.phoneTopGap;
+
+  // desktop decor below headings; mobile decor higher (above text)
+  // ⬇️ move mobile decor even higher so avatars don't overlap text
+  const desktopDecorTop =
+    effectiveHeroTopGap + effectiveHeadingBlockHeight + Math.max(8, effectiveHeadlineGap);
+  const mobileDecorTop = Math.max(8, effectiveHeroTopGap - 78); // was -58
+  const decorTop = isMobile ? mobileDecorTop : desktopDecorTop;
+
+  // phone geometry
   const phoneH = props.phoneWidth * props.phoneAspect;
-  const phoneTop = props.heroTopGap + props.headingBlockHeight + props.phoneTopGap;
+  const phoneTop = effectiveHeroTopGap + effectiveHeadingBlockHeight + effectivePhoneTopGap;
   const phoneCenterYAbs = phoneTop + phoneH * 0.45;
-  const targetYInDecor = phoneCenterYAbs - decorTop; // convert to decor coords
+  const targetYInDecor = phoneCenterYAbs - decorTop;
 
-  const timeline = props.timeline as Timeline;
+  const heroPropsForRender = {
+    ...props,
+    heroTopGap: effectiveHeroTopGap,
+    headlineGap: effectiveHeadlineGap,
+    h1Px: effectiveH1Px,
+    h2Px: effectiveH2Px,
+    phoneTopGap: effectivePhoneTopGap,
+    headingBlockHeight: effectiveHeadingBlockHeight,
+  } as React.ComponentProps<typeof Hero>;
 
   return (
     <TimedCopy
       timeline={timeline}
-      headingTopPx={props.heroTopGap}
-      headingHeightPx={props.headingBlockHeight}
+      headingTopPx={effectiveHeroTopGap}
+      headingHeightPx={effectiveHeadingBlockHeight}
       decorTopPx={decorTop}
       renderBase={(mediaEl) => (
         <Hero
-          {...(props as unknown as React.ComponentProps<typeof Hero>)}
+          {...heroPropsForRender}
           suppressText
-          centerpiece={mediaEl ?? <div className="absolute inset-0 bg-black/20" />}
+          centerpiece={mediaEl ?? null}
         />
       )}
-      // Static heading
       renderHeading={(heading: string) => (
         <h1
           className="m-0"
           style={{
-            fontSize: `${props.h1Px}px`,
+            fontSize: `${effectiveH1Px}px`,
             lineHeight: props.h1Line,
             fontWeight: props.h1Weight,
             color: "#fff",
@@ -183,13 +238,12 @@ export default function HeroWithTimeline({ props }: { props: HeroMinimalProps })
           {heading || props.title}
         </h1>
       )}
-      // Fading subheading
       renderSubheading={(subheading: string) => (
         <p
           className="m-0 opacity-90"
           style={{
-            marginTop: props.headlineGap,
-            fontSize: `${props.h2Px}px`,
+            marginTop: effectiveHeadlineGap,
+            fontSize: `${effectiveH2Px}px`,
             lineHeight: props.h2Line,
             fontWeight: props.h2Weight,
             color: "#fff",
@@ -199,49 +253,143 @@ export default function HeroWithTimeline({ props }: { props: HeroMinimalProps })
         </p>
       )}
       renderDecor={(cueIndex: number) => {
-        if (cueIndex < 1) return null; // only show from cue 1 onward
-
+        if (cueIndex < 1) return null;
+        const phase: "in" | "out" = cueIndex >= 2 ? "out" : "in";
         const phoneHalf = props.phoneWidth / 2;
         const gapFromPhone = 36;
-        const groupSpan = 280;
 
-        // V positions (relative to decor’s centered container)
-        const leftXs = [
-          -(phoneHalf + gapFromPhone + groupSpan * 0.15),
-          -(phoneHalf + gapFromPhone + groupSpan * 0.5),
-          -(phoneHalf + gapFromPhone + groupSpan * 0.85),
+        // DESKTOP
+        if (!isMobile) {
+          const groupSpan = 210;
+          const leftXs = [
+            -(phoneHalf + gapFromPhone + groupSpan * 0.15),
+            -(phoneHalf + gapFromPhone + groupSpan * 0.45),
+            -(phoneHalf + gapFromPhone + groupSpan * 0.75),
+          ];
+          const rightXs = [
+            +(phoneHalf + gapFromPhone + groupSpan * 0.15),
+            +(phoneHalf + gapFromPhone + groupSpan * 0.45),
+            +(phoneHalf + gapFromPhone + groupSpan * 0.75),
+          ];
+          const yInner = 72;
+          const yMid = 52;
+          const yOuter = 34;
+
+          const desktopNodes: AvatarNode[] = [
+            {
+              src: AVATARS_DESKTOP[0],
+              x: leftXs[0],
+              y: yInner,
+              delay: 100,
+              key: "av-0",
+              dx: 0 - leftXs[0],
+              dy: targetYInDecor - yInner,
+            },
+            {
+              src: AVATARS_DESKTOP[1],
+              x: leftXs[1],
+              y: yMid,
+              delay: 150,
+              key: "av-1",
+              dx: 0 - leftXs[1],
+              dy: targetYInDecor - yMid,
+            },
+            {
+              src: AVATARS_DESKTOP[2],
+              x: leftXs[2],
+              y: yOuter,
+              delay: 200,
+              key: "av-2",
+              dx: 0 - leftXs[2],
+              dy: targetYInDecor - yOuter,
+            },
+            {
+              src: AVATARS_DESKTOP[3],
+              x: rightXs[0],
+              y: yInner,
+              delay: 100,
+              key: "av-3",
+              dx: 0 - rightXs[0],
+              dy: targetYInDecor - yInner,
+            },
+            {
+              src: AVATARS_DESKTOP[4],
+              x: rightXs[1],
+              y: yMid,
+              delay: 150,
+              key: "av-4",
+              dx: 0 - rightXs[1],
+              dy: targetYInDecor - yMid,
+            },
+            {
+              src: AVATARS_DESKTOP[5],
+              x: rightXs[2],
+              y: yOuter,
+              delay: 200,
+              key: "av-5",
+              dx: 0 - rightXs[2],
+              dy: targetYInDecor - yOuter,
+            },
+          ];
+
+          return (
+            <VAvatars
+              nodes={desktopNodes}
+              height={yInner + 48}
+              phase={phase}
+              moveMs={1600}
+              enterMs={1500}
+              fadeMs={900}
+            />
+          );
+        }
+
+        // MOBILE — raised a bit
+        const mobileY = 30; // was 50
+        const leftX = -(phoneHalf/2 + gapFromPhone + 1);
+        const centerX = 0;
+        const rightX = +(phoneHalf/2 + gapFromPhone + 1);
+
+        const mobileNodes: AvatarNode[] = [
+          {
+            src: AVATARS_MOBILE[0],
+            x: leftX,
+            y: mobileY,
+            delay: 80,
+            key: "m-0",
+            dx: 0 - leftX,
+            dy: targetYInDecor - mobileY,
+          },
+          {
+            src: AVATARS_MOBILE[1],
+            x: centerX,
+            y: mobileY - 4,
+            delay: 130,
+            key: "m-1",
+            dx: 0,
+            dy: targetYInDecor - (mobileY - 4),
+          },
+          {
+            src: AVATARS_MOBILE[2],
+            x: rightX,
+            y: mobileY,
+            delay: 180,
+            key: "m-2",
+            dx: 0 - rightX,
+            dy: targetYInDecor - mobileY,
+          },
         ];
-        const rightXs = [
-          +(phoneHalf + gapFromPhone + groupSpan * 0.15),
-          +(phoneHalf + gapFromPhone + groupSpan * 0.5),
-          +(phoneHalf + gapFromPhone + groupSpan * 0.85),
-        ];
-        const yInner = 72,
-          yMid = 52,
-          yOuter = 34;
 
-        const mk = (src: string, x: number, y: number, delay: number, i: number): Node => ({
-          src,
-          x,
-          y,
-          delay,
-          key: `av-${i}`,
-          dx: 0 - x,
-          dy: targetYInDecor - y,
-        });
-
-        const nodes: Node[] = [
-          mk(AVATARS[0], leftXs[0], yInner, 100, 0),
-          mk(AVATARS[1], leftXs[1], yMid, 150, 1),
-          mk(AVATARS[2], leftXs[2], yOuter, 200, 2),
-          mk(AVATARS[3], rightXs[0], yInner, 100, 3),
-          mk(AVATARS[4], rightXs[1], yMid, 150, 4),
-          mk(AVATARS[5], rightXs[2], yOuter, 200, 5),
-        ];
-
-        const phase: "in" | "out" = cueIndex >= 2 ? "out" : "in";
-
-        return <VAvatars nodes={nodes} height={yInner + 48} phase={phase} moveMs={1600} enterMs={1500} fadeMs={900} />;
+        return (
+          <VAvatars
+            nodes={mobileNodes}
+            height={mobileY + 48}
+            phase={phase}
+            moveMs={1500}
+            enterMs={1200}
+            fadeMs={850}
+          />
+        );
       }}
     />
   );
